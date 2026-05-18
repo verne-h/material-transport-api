@@ -1,0 +1,167 @@
+openapi: '3.0.3'
+info:
+  title: Material Transport API
+  version: '1.0.0'
+
+paths:
+  /v1/tickets:
+    get:
+      operationId: listTickets
+      summary: List tickets, optionally filtered by site(s) and/or date range
+      parameters:
+        - name: siteId
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: integer
+              minimum: 1
+          style: form
+          explode: true
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TicketView'
+
+  /v1/tickets/bulk:
+    post:
+      operationId: createTicketsBulk
+      summary: Bulk-dispatch tickets for a single truck
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkCreateTicketsRequest'
+      responses:
+        '201':
+          description: Tickets created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TicketView'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  schemas:
+    TicketView:
+      type: object
+      required: [id, ticketNumber, dispatchedAt, siteName, truckLicense, materialName]
+      properties:
+        id:
+          type: integer
+        ticketNumber:
+          type: integer
+        dispatchedAt:
+          type: string
+          format: date-time
+        siteName:
+          type: string
+        truckLicense:
+          type: string
+        materialName:
+          type: string
+
+    BulkCreateTicketsRequest:
+      type: object
+      required: [truckId, tickets]
+      additionalProperties: false
+      properties:
+        truckId:
+          type: integer
+          minimum: 1
+        tickets:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [materialId, dispatchedAt]
+            additionalProperties: false
+            properties:
+              materialId:
+                type: integer
+                minimum: 1
+              dispatchedAt:
+                type: string
+                pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflict with existing data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
