@@ -36,8 +36,6 @@ By default, the database file is created at:
 ./data/app.db
 ```
 
-The `data/` directory is created automatically when the database is opened.
-
 `npm run db:migrate` creates the tables and indexes used by the API.
 
 `npm run db:seed` loads the provided sites and trucks data.
